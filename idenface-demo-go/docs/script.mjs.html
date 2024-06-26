@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>script.mjs - Documentation</title>
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav >
+    
+    
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Demo.html">Demo</a><ul class='methods'><li data-type='method'><a href="module-Demo.html#.main">main</a></li><li data-type='method'><a href="module-Demo.html#.modifyDebugStyle">modifyDebugStyle</a></li><li data-type='method'><a href="module-Demo.html#~checkCount">checkCount</a></li><li data-type='method'><a href="module-Demo.html#~detectListener">detectListener</a></li><li data-type='method'><a href="module-Demo.html#~enableWebcam">enableWebcam</a></li><li data-type='method'><a href="module-Demo.html#~getFrameCanvas">getFrameCanvas</a></li><li data-type='method'><a href="module-Demo.html#~modifyStyle">modifyStyle</a></li></ul></li></ul>
+    
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">script.mjs</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Idenface usage example
+ * @version 1.0.0
+ * @module Demo
+ * @author Wei-Han He
+ */
+
+import {debug, webcam as config} from "./idenfaceConfig.mjs";
+import {Idenface} from "./idenface_bundle.min.mjs";
+
+let container = document.getElementById("container");
+/**
+ * @type {HTMLVideoElement}
+ */
+let webcam = document.getElementById("webcam");
+let valueArea = document.getElementById("value-area");
+let resultCanvas = document.getElementById("result-canvas");
+let lastWebcamTime = -1;
+let idenface = new Idenface(resultCanvas);
+await idenface.initialize();
+
+let count = 0;
+
+
+/**
+ * Main function to initialize and start the necessary processes.
+ */
+export function main() {
+    setInterval(checkCount, 1000);
+    modifyStyle();
+    modifyDebugStyle();
+    enableWebcam();
+
+    webcam.addEventListener("loadeddata", detectListener);
+}
+
+/**
+ * Modifies the style of various elements based on the configuration settings.
+ */
+function modifyStyle() {
+    let widthPixel = `${config.width}px`;
+    let heightPixel = `${config.height}px`;
+    let webcamLength = Math.max(config.width, config.height);
+
+    container.style.width = widthPixel;
+    container.style.height = heightPixel;
+
+    let spreadRadius = Math.round(webcamLength / 7);
+    valueArea.style.boxShadow = `inset 0 0 0 ${spreadRadius}px rgba(0, 255, 0, 0.5)`;
+
+    resultCanvas.style.width = widthPixel;
+    resultCanvas.style.height = heightPixel;
+    resultCanvas.width = config.width;
+    resultCanvas.height = config.height;
+}
+
+/**
+ * Updates the frame per second (FPS) count displayed on the webpage.
+ */
+function checkCount() {
+    document.getElementById("fps").innerText = `FPS: ${count}`
+    count = 0;
+}
+
+/**
+ * Modifies the style of debug elements to be visible if debug mode is enabled.
+ */
+export function modifyDebugStyle() {
+    if (!debug) return;
+
+    let debugElements = document.querySelectorAll(".debug");
+    for (let element of debugElements) {
+        element.style.display = "block";
+    }
+}
+
+/**
+ * Enables the webcam and sets its stream to the video element.
+ */
+function enableWebcam() {
+    const constraints = {
+        video: {width: config.width, height: config.height},
+    };
+    navigator.mediaDevices
+        .getUserMedia(constraints)
+        .then(stream => {
+            webcam.srcObject = stream;
+        })
+        .catch(err => {
+            console.error(err);
+        });
+}
+
+/**
+ * Listener function that handles the detection process for each video frame.
+ */
+async function detectListener() {
+    if (webcam.currentTime !== lastWebcamTime) {
+        lastWebcamTime = webcam.currentTime;
+        let frameCanvas = getFrameCanvas();
+        let result = await idenface.detect(frameCanvas);
+        count++;
+        document.getElementById("detail").innerText = JSON.stringify(result, null, 4);
+        document.getElementById("sets").innerText = JSON.stringify(idenface.cache.sets, null, 4);
+        idenface.cleanCanvas();
+        idenface.displayBoundingBox();
+        idenface.displayLandmark();
+        if (idenface.body) {
+            document.getElementById("form-canvas").value = idenface.body.canvas;
+            document.getElementById("form-detail").value = idenface.body.detail;
+            if (debug) return;
+            document.getElementById("form").submit();
+            return;
+        }
+    }
+    window.requestAnimationFrame(detectListener);
+}
+
+/**
+ * Captures the current frame from the webcam video and returns it as a canvas element.
+ * @returns {HTMLCanvasElement} - The canvas element containing the captured frame.
+ */
+function getFrameCanvas() {
+    let canvas = document.createElement("canvas");
+    canvas.width = config.width;
+    canvas.height = config.height;
+
+    let context = canvas.getContext('2d');
+    context.drawImage(webcam, 0, 0, canvas.width, canvas.height);
+
+    return canvas;
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.3</a> on Wed Jun 26 2024 17:23:13 GMT+0800 (Taipei Standard Time) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+
+
+</body>
+</html>
